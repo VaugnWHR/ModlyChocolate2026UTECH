@@ -1,0 +1,1 @@
+October 22, 2026 - Claude - Usage : task split, timeline, planning, reading the textbook for the exercise- Verfication : red through the project doc and confirmed all instructions/ objectives had matched up, directed mself towards the important parts of the notes within th text book, and read through to make sure i understood and to help verify any mistakes. 
