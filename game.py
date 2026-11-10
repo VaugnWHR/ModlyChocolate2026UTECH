@@ -54,3 +54,46 @@ def setup_game(input_fn=input, output_fn=print):
     r = ask_int(f"Spoiled square's row (1-{m}): ", 1, m, input_fn, output_fn)
     c = ask_int(f"Spoiled square's column (1-{n}): ", 1, n, input_fn, output_fn)
     return MoldyChocolateGame(m, n, r - 1, c - 1)   # human 1-indexed -> model 0-indexed
+
+def draw_board(game):
+    """Return the bar as text. X = spoiled square, . = chocolate left, blank = eaten.
+    Row/column labels are 1-indexed and always refer to the ORIGINAL bar."""
+    r1, r2, c1, c2 = game.get_state()["bounds"]
+    sr, sc = game.get_state()["spoiled"]
+    lines = ["     " + " ".join(f"{c + 1:>2}" for c in range(game.n))]
+    for r in range(game.m):
+        cells = []
+        for c in range(game.n):
+            if (r, c) == (sr, sc):
+                ch = "X"
+            elif r1 <= r <= r2 and c1 <= c <= c2:
+                ch = "."
+            else:
+                ch = " "
+            cells.append(f"{ch:>2}")
+        lines.append(f"{r + 1:>3}  " + " ".join(cells))
+    return "\n".join(lines)
+
+
+def _span(lo, hi):
+    return str(lo) if lo == hi else f"{lo}-{hi}"
+
+
+def describe_legal_cuts(game):
+    """One-line summary of the legal cuts in the player's 1-indexed numbering."""
+    r1, r2, c1, c2 = game.get_state()["bounds"]
+    parts = []
+    if r2 > r1:
+        parts.append("H " + _span(r1 + 1, r2))
+    if c2 > c1:
+        parts.append("V " + _span(c1 + 1, c2))
+    if not parts:
+        return "Legal cuts: none (only the spoiled square is left)"
+    return "Legal cuts: " + ", ".join(parts)
+
+
+def show_board(game, output_fn=print):
+    rows, cols = game.get_state()["current_dimensions"]
+    output_fn(draw_board(game))
+    output_fn(f"Bar size: {rows} x {cols}")
+    output_fn(describe_legal_cuts(game))
