@@ -1,7 +1,6 @@
 import unittest
 from model import MoldyChocolateGame
-from game import parse_move, get_valid_move
-
+from game import parse_move, get_valid_move, parse_int_in_range, setup_game, QuitGame, MAX_SIZE
 
 class TestParseMove(unittest.TestCase):
     def test_valid_moves(self):
@@ -56,4 +55,52 @@ class TestParseThenValidate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-    
+
+
+def make_input(answers):
+    """Fake input(): returns the scripted answers one at a time."""
+    it = iter(answers)
+    return lambda prompt="": next(it)
+
+
+class TestParseIntInRange(unittest.TestCase):
+    def test_valid(self):
+        self.assertEqual(parse_int_in_range("3", 1, 4), 3)
+        self.assertEqual(parse_int_in_range("  3 ", 1, 4), 3)
+        self.assertEqual(parse_int_in_range("1", 1, 4), 1)   # lower boundary
+        self.assertEqual(parse_int_in_range("4", 1, 4), 4)   # upper boundary
+
+    def test_invalid(self):
+        for text in ["0", "5", "-1", "2.5", "", "abc", "two"]:
+            self.assertIsNone(parse_int_in_range(text, 1, 4), text)
+
+
+class TestSetupGame(unittest.TestCase):
+    def test_valid_setup(self):
+        game = setup_game(make_input(["4", "4", "2", "3"]), lambda *_: None)
+        self.assertEqual(game.get_state()["spoiled"], (1, 2))
+        self.assertEqual(game.get_state()["current_dimensions"], (4, 4))
+
+    def test_reprompts_on_bad_input(self):
+        messages = []
+        game = setup_game(make_input(["0", "abc", "4", "4", "2", "3"]), messages.append)
+        self.assertEqual(len(messages), 2)                    # two error messages shown
+        self.assertEqual(game.get_state()["spoiled"], (1, 2))
+
+    def test_spoiled_square_must_fit_the_bar(self):
+        # 3x3 bar: spoiled row 5 is rejected, then 2 is accepted
+        game = setup_game(make_input(["3", "3", "5", "2", "1"]), lambda *_: None)
+        self.assertEqual(game.get_state()["spoiled"], (1, 0))
+
+    def test_size_limits(self):
+        game = setup_game(make_input([str(MAX_SIZE + 1), str(MAX_SIZE), "1", "1", "1"]),
+                          lambda *_: None)
+        self.assertEqual(game.get_state()["current_dimensions"], (MAX_SIZE, 1))
+
+    def test_one_by_one_bar(self):
+        game = setup_game(make_input(["1", "1", "1", "1"]), lambda *_: None)
+        self.assertTrue(game.is_terminal())
+
+    def test_quit(self):
+        with self.assertRaises(QuitGame):
+            setup_game(make_input(["q"]), lambda *_: None)
