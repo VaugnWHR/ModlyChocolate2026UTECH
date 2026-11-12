@@ -1,3 +1,5 @@
+from prompt_toolkit import prompt
+
 from model import MoldyChocolateGame
 
 
@@ -97,3 +99,30 @@ def show_board(game, output_fn=print):
     output_fn(draw_board(game))
     output_fn(f"Bar size: {rows} x {cols}")
     output_fn(describe_legal_cuts(game))
+
+def ask_move(game, prompt=" Your cut (e.g H 2, or q to quit): ", input_fn=input, output_fn=print):
+    """Keep asking until the player types a legal cut. Return a model move, e.g. ('H', 1)."""
+    while True:
+        text = input_fn(prompt)
+        if text.strip().lower() == "q":
+            raise QuitGame
+        move = get_valid_move(game,text)
+        if move is not None:
+            return move
+        output_fn("Thats not a legal cut " + describe_legal_cuts(game))
+
+def demo_cut_loop(game, input_fn=input, output_fn=print):
+    """Keep asking for cuts until game ends(spoiled square left)"""
+    show_board(game, output_fn)
+    while not game.is_terminal():
+        move = ask_move(game, input_fn=input_fn, output_fn=output_fn)
+        game.apply_move(*move)
+        show_board(game, output_fn)
+    output_fn("Only the spoiled square is left!")
+
+
+if __name__ == "__main__":
+    try:
+        demo_cut_loop(setup_game())
+    except QuitGame:
+        print("Thanks for playing!")

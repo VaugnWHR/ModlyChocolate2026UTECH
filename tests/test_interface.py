@@ -1,6 +1,7 @@
 import unittest
 from model import MoldyChocolateGame
-from game import parse_move, get_valid_move, parse_int_in_range, setup_game, draw_board, describe_legal_cuts, show_board, QuitGame, MAX_SIZE
+from game import parse_move, get_valid_move, parse_int_in_range, setup_game, draw_board, describe_legal_cuts, show_board, QuitGame, MAX_SIZE, ask_move, demo_cut_loop
+
 
 class TestParseMove(unittest.TestCase):
     def test_valid_moves(self):
@@ -53,8 +54,8 @@ class TestParseThenValidate(unittest.TestCase):
         self.assertIsNone(get_valid_move(game, "H 1"))
         self.assertIsNone(get_valid_move(game, "V 1"))
 
-if __name__ == "__main__":
-    unittest.main()
+    if __name__ == "__main__":
+        unittest.main()
 
 
 def make_input(answers):
@@ -168,3 +169,45 @@ class TestShowBoard(unittest.TestCase):
         self.assertEqual(len(out), 3)
         self.assertEqual(out[1], "Bar size: 4 x 4")
         self.assertEqual(out[2], "Legal cuts: H 1-3, V 1-3")
+
+
+class TestAskMove(unittest.TestCase):
+    def setUp(self):
+        self.game = MoldyChocolateGame(4, 4, 1, 2)
+
+    def test_returns_model_move(self):
+        move = ask_move(self.game, input_fn=make_input(["H 2"]), output_fn=lambda *_: None)
+        self.assertEqual(move, ("H", 1))                      # typed 2 -> model index 1
+
+    def test_reprompts_until_legal(self):
+        msgs = []
+        move = ask_move(self.game, input_fn=make_input(["banana", "H 9", "H2", "v 3"]),
+                        output_fn=msgs.append)
+        self.assertEqual(move, ("V", 2))
+        self.assertEqual(len(msgs), 3)                        # three rejected attempts
+        self.assertIn("Legal cuts: H 1-3, V 1-3", msgs[0])
+
+    def test_quit(self):
+        with self.assertRaises(QuitGame):
+            ask_move(self.game, input_fn=make_input(["q"]), output_fn=lambda *_: None)
+
+    def test_asking_does_not_change_the_game(self):
+        before = self.game.get_state()
+        ask_move(self.game, input_fn=make_input(["H 9", "H 2"]), output_fn=lambda *_: None)
+        self.assertEqual(self.game.get_state(), before)
+
+
+class TestDemoLoop(unittest.TestCase):
+    def test_full_game_reaches_terminal(self):
+        out = []
+        game = MoldyChocolateGame(2, 2, 0, 0)
+        demo_cut_loop(game, make_input(["H 5", "H 1", "V 1"]), out.append)
+        self.assertTrue(game.is_terminal())
+        self.assertEqual(out[-1], "Only the spoiled square is left!")
+        self.assertEqual(sum("not a legal cut" in m for m in out), 1)
+
+    def test_one_by_one_needs_no_input(self):
+        out = []
+        game = MoldyChocolateGame(1, 1, 0, 0)
+        demo_cut_loop(game, make_input([]), out.append)       # any input request would raise
+        self.assertEqual(out[-1], "Only the spoiled square is left!")
