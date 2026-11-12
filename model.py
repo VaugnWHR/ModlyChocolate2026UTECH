@@ -87,3 +87,4 @@ class MoldyChocolateGame:
             else:
                 self.c1 = cut_index + 1  # Keep right portion
 
+ 

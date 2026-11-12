@@ -1,6 +1,6 @@
 import unittest
 from model import MoldyChocolateGame
-from game import parse_move, get_valid_move, parse_int_in_range, setup_game, draw_board, describe_legal_cuts, show_board, QuitGame, MAX_SIZE, ask_move, demo_cut_loop
+from game import parse_move, get_valid_move, parse_int_in_range, setup_game, draw_board, describe_legal_cuts, show_board, QuitGame, MAX_SIZE, ask_move, demo_cut_loop, play_game, main, ask_choice, format_move, random_move
 
 
 class TestParseMove(unittest.TestCase):
@@ -211,3 +211,78 @@ class TestDemoLoop(unittest.TestCase):
         game = MoldyChocolateGame(1, 1, 0, 0)
         demo_cut_loop(game, make_input([]), out.append)       # any input request would raise
         self.assertEqual(out[-1], "Only the spoiled square is left!")
+
+
+def first_cut(game):
+    """Deterministic test opponent: always the first legal cut."""
+    return game.get_legal_moves()[0]
+
+
+class TestPlayGame(unittest.TestCase):
+    def test_human_left_with_spoiled_square_loses(self):
+        game = MoldyChocolateGame(2, 2, 0, 0)
+        out = []
+        winner = play_game(game, first_cut, True, make_input(["H 1"]), out.append)
+        self.assertEqual(winner, "computer")           # human cut, computer cut, human to move on 1x1
+        self.assertIn("You lose", out[-1])
+
+    def test_computer_left_with_spoiled_square_loses(self):
+        out = []
+        winner = play_game(MoldyChocolateGame(1, 2, 0, 0), first_cut, True,
+                           make_input(["V 1"]), out.append)
+        self.assertEqual(winner, "human")
+        self.assertIn("You win", out[-1])
+
+    def test_computer_goes_first(self):
+        winner = play_game(MoldyChocolateGame(1, 2, 0, 0), first_cut, False,
+                           make_input([]), lambda *_: None)
+        self.assertEqual(winner, "computer")           # computer cut, human left with X
+
+    def test_one_by_one_player_to_move_loses(self):
+        for human_first, expected in [(True, "computer"), (False, "human")]:
+            winner = play_game(MoldyChocolateGame(1, 1, 0, 0), first_cut, human_first,
+                               make_input([]), lambda *_: None)
+            self.assertEqual(winner, expected)
+
+    def test_computer_receives_a_copy(self):
+        seen = []
+        def spy(g):
+            seen.append(g)
+            return g.get_legal_moves()[0]
+        game = MoldyChocolateGame(1, 2, 0, 0)
+        play_game(game, spy, False, make_input([]), lambda *_: None)
+        self.assertIsNot(seen[0], game)
+
+    def test_random_play_always_ends_legally(self):
+        import random
+        for seed in range(50):
+            random.seed(seed)
+            m, n = random.randint(1, 6), random.randint(1, 6)
+            game = MoldyChocolateGame(m, n, random.randrange(m), random.randrange(n))
+            def human(prompt=""):
+                t, i = random.choice(game.get_legal_moves())
+                return f"{t} {i + 1}"
+            play_game(game, random_move, seed % 2 == 0, human, lambda *_: None)
+            self.assertTrue(game.is_terminal())
+
+
+class TestMain(unittest.TestCase):
+    def test_two_games_then_exit(self):
+        out = []
+        answers = ["1", "2", "1", "1",     # 1x2 bar, X at row 1, column 1
+                   "x", "c",               # invalid choice, then computer first
+                   "y",                    # play again
+                   "1", "1", "1", "1",     # 1x1 bar
+                   "h",                    # human first (loses immediately)
+                   "n"]                    # stop
+        main(first_cut, make_input(answers), out.append)
+        self.assertIn("Please type one of: h, c (or q to quit).", out)
+        self.assertEqual(out[-1], "Thanks for playing!")
+        self.assertEqual(sum("You lose" in m for m in out), 2)
+
+    def test_quit_mid_game(self):
+        out = []
+        main(first_cut, make_input(["3", "3", "2", "2", "h", "q"]), out.append)
+        self.assertEqual(out[-1], "Thanks for playing!")
+
+

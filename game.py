@@ -2,6 +2,7 @@ from prompt_toolkit import prompt
 
 from model import MoldyChocolateGame
 
+import random
 
 MAX_SIZE = 20   # keeps the board drawable in a terminal
 
@@ -121,8 +122,66 @@ def demo_cut_loop(game, input_fn=input, output_fn=print):
     output_fn("Only the spoiled square is left!")
 
 
-if __name__ == "__main__":
+def format_move(move):
+    """('H', 1) -> 'H 2' (model 0-indexed -> what the player types)."""
+    cut_type, index = move
+    return f"{cut_type} {index + 1}"
+
+
+def random_move(game):
+    """Placeholder computer player: any legal cut. Replace with the solver's best_move later."""
+    return random.choice(game.get_legal_moves())
+
+
+def ask_choice(prompt, valid, input_fn=input, output_fn=print):
+    """Ask until the player types one letter from valid (e.g. 'hc'). 'q' quits."""
+    while True:
+        text = input_fn(prompt).strip().lower()
+        if text == "q":
+            raise QuitGame
+        if len(text) == 1 and text in valid:
+            return text
+        output_fn(f"Please type one of: {', '.join(valid)} (or q to quit).")
+
+
+def play_game(game, computer_move_fn, human_first, input_fn=input, output_fn=print):
+    """Play one game. Returns 'human' or 'computer' (the winner).
+    The player who must move when only the spoiled square is left loses."""
+    show_board(game, output_fn)
+    player = "human" if human_first else "computer"
+    while not game.is_terminal():
+        if player == "human":
+            move = ask_move(game, input_fn=input_fn, output_fn=output_fn)
+            output_fn(f"You cut {format_move(move)}.")
+        else:
+            move = computer_move_fn(game.copy())      # a copy, so the strategy can't alter the real game
+            output_fn(f"Computer cuts {format_move(move)}.")
+        game.apply_move(*move)
+        show_board(game, output_fn)
+        player = "computer" if player == "human" else "human"
+    winner = "computer" if player == "human" else "human"   # 'player' is the one left with X
+    if winner == "human":
+        output_fn("The computer is left with the spoiled square. You win!")
+    else:
+        output_fn("You are left with the spoiled square. You lose!")
+    return winner
+
+
+def main(computer_move_fn=random_move, input_fn=input, output_fn=print):
+    output_fn("Moldy Chocolate: whoever is left with the spoiled square (X) loses.")
     try:
-        demo_cut_loop(setup_game())
+        while True:
+            game = setup_game(input_fn, output_fn)
+            first = ask_choice("Who goes first? (h = you, c = computer): ", "hc", input_fn, output_fn)
+            play_game(game, computer_move_fn, first == "h", input_fn, output_fn)
+            if ask_choice("Play again? (y/n): ", "yn", input_fn, output_fn) == "n":
+                break
     except QuitGame:
-        print("Thanks for playing!")
+        pass
+    output_fn("Thanks for playing!")
+
+
+if __name__ == "__main__":
+    main()
+
+
