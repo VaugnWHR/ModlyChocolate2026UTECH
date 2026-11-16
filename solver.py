@@ -1,3 +1,7 @@
+
+
+from model import MoldyChocolateGame
+
 class MoldyChocolateSolver:
     def __init__(self):
         self.memo = {}  # Stores previously computed results for specific game states.
