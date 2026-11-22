@@ -1,5 +1,3 @@
-
-
 from model import MoldyChocolateGame
 
 class MoldyChocolateSolver:
@@ -109,3 +107,4 @@ if __name__ == "__main__":
     best_move = solver.best_move(game)
     print("\nBest Move Suggested by Solver:", best_move)
     
+
