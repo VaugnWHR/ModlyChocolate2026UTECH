@@ -1,6 +1,6 @@
-from prompt_toolkit import prompt
-
 from model import MoldyChocolateGame
+
+from solver import MoldyChocolateSolver
 
 import random
 
@@ -59,7 +59,7 @@ def setup_game(input_fn=input, output_fn=print):
     return MoldyChocolateGame(m, n, r - 1, c - 1)   # human 1-indexed -> model 0-indexed
 
 def draw_board(game):
-    """Return the bar as text. X = spoiled square, . = chocolate left, blank = eaten.
+    """Return the bar as text. X = spoiled square, + = chocolate left, blank = eaten.
     Row/column labels are 1-indexed and always refer to the ORIGINAL bar."""
     r1, r2, c1, c2 = game.get_state()["bounds"]
     sr, sc = game.get_state()["spoiled"]
@@ -70,7 +70,7 @@ def draw_board(game):
             if (r, c) == (sr, sc):
                 ch = "X"
             elif r1 <= r <= r2 and c1 <= c <= c2:
-                ch = "."
+                ch = "+"
             else:
                 ch = " "
             cells.append(f"{ch:>2}")
@@ -110,7 +110,7 @@ def ask_move(game, prompt=" Your cut (e.g H 2, or q to quit): ", input_fn=input,
         move = get_valid_move(game,text)
         if move is not None:
             return move
-        output_fn("Thats not a legal cut " + describe_legal_cuts(game))
+        output_fn("That's not a legal cut " + describe_legal_cuts(game))
 
 def demo_cut_loop(game, input_fn=input, output_fn=print):
     """Keep asking for cuts until game ends(spoiled square left)"""
@@ -129,8 +129,15 @@ def format_move(move):
 
 
 def random_move(game):
+    """Selects a random legal move."""
     """Placeholder computer player: any legal cut. Replace with the solver's best_move later."""
     return random.choice(game.get_legal_moves())
+
+solver = MoldyChocolateSolver()
+
+def optimal_move(game):
+    """Select the best available move using the solver."""
+    return solver.best_move(game)
 
 
 def ask_choice(prompt, valid, input_fn=input, output_fn=print):
@@ -167,8 +174,16 @@ def play_game(game, computer_move_fn, human_first, input_fn=input, output_fn=pri
     return winner
 
 
-def main(computer_move_fn=random_move, input_fn=input, output_fn=print):
+def main(computer_move_fn=optimal_move, input_fn=input, output_fn=print):
     output_fn("Moldy Chocolate: whoever is left with the spoiled square (X) loses.")
+    output_fn("\nGame Instructions:")
+    output_fn("X = Spoiled chocolate")
+    output_fn("+ = Edible chocolate")
+    output_fn("H = Horizontal cut")
+    output_fn("V = Vertical cut")
+    output_fn("Example: H 2 cuts after row 2.")
+    output_fn("Example: V 2 cuts after column 2.")
+    output_fn("Enter 'Q' to quit the game at anytime.\n")
     try:
         while True:
             game = setup_game(input_fn, output_fn)
@@ -183,5 +198,6 @@ def main(computer_move_fn=random_move, input_fn=input, output_fn=print):
 
 if __name__ == "__main__":
     main()
+
 
 
