@@ -114,28 +114,28 @@ class TestDrawBoard(unittest.TestCase):
     def test_initial_board(self):
         lines = draw_board(self.game).splitlines()
         self.assertEqual(lines[0].split(), ["1", "2", "3", "4"])        # column labels
-        self.assertEqual(lines[2].split(), ["2", ".", ".", "X", "."])   # row with the X
+        self.assertEqual(lines[2].split(), ["2", "+", "+", "X", "+"])   # row with the X
         self.assertEqual(draw_board(self.game).count("X"), 1)
-        self.assertEqual(draw_board(self.game).count("."), 15)
+        self.assertEqual(draw_board(self.game).count("+"), 15)
 
     def test_eaten_rows_keep_their_labels(self):
         self.game.apply_move("H", 1)                                    # human "H 2"
         lines = draw_board(self.game).splitlines()
         self.assertEqual(lines[3].split(), ["3"])                       # row 3 eaten, label stays
         self.assertEqual(lines[4].split(), ["4"])
-        self.assertEqual(draw_board(self.game).count("."), 7)           # 2x4 = 8 cells minus X
+        self.assertEqual(draw_board(self.game).count("+"), 7)           # 2x4 = 8 cells minus X
 
     def test_spoiled_square_never_disappears(self):
         while not self.game.is_terminal():
             self.assertEqual(draw_board(self.game).count("X"), 1)
             self.game.apply_move(*self.game.get_legal_moves()[0])
         self.assertEqual(draw_board(self.game).count("X"), 1)
-        self.assertEqual(draw_board(self.game).count("."), 0)
+        self.assertEqual(draw_board(self.game).count("+"), 0)
 
     def test_one_by_one_and_single_row(self):
         self.assertEqual(draw_board(MoldyChocolateGame(1, 1, 0, 0)).count("X"), 1)
         row = draw_board(MoldyChocolateGame(1, 5, 0, 2)).splitlines()
-        self.assertEqual(row[1].split(), ["1", ".", ".", "X", ".", "."])
+        self.assertEqual(row[1].split(), ["1", "+", "+", "X", "+", "+"])
 
 
 class TestLegalCutsText(unittest.TestCase):
@@ -284,5 +284,6 @@ class TestMain(unittest.TestCase):
         out = []
         main(first_cut, make_input(["3", "3", "2", "2", "h", "q"]), out.append)
         self.assertEqual(out[-1], "Thanks for playing!")
+
 
 
