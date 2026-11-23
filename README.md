@@ -1,4 +1,4 @@
-# ModlyChocolate2026UTECH
+# MoldyChocolate2026UTECH
 
 ## Installation and Execution Instructions
 
